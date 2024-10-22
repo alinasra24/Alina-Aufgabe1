@@ -3,8 +3,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class Application { // Hier ist der Name deiner Hauptklasse
+public class Application {
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args); // Starte die Anwendung
+        SpringApplication.run(Application.class, args); // Startet die Anwendung
     }
 }
