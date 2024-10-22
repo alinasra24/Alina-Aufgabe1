@@ -1,0 +1,43 @@
+version: "3.8"
+services:
+  list:
+    build: .
+    ports:
+      - "7979:7979"  # Port 7979 für den List-Service
+    environment:
+      - SERVER_PORT=7979
+      - DATASET_SERVICE_URL=http://assessment:8080/v1/dataset  # URL für den Dataset-Dienst
+      - RESULT_SERVICE_URL=http://assessment:8080/v1/result  # URL für den Dataset-Dienst
+    networks:
+      - example
+    healthcheck:  # Healthcheck für den List-Service
+      test: ["CMD-SHELL", "curl -f http://localhost:7979/getCustomers || exit 1"]
+      interval: 2s
+      timeout: 5s
+      start_period: 2s
+      retries: 5
+
+  assessment:  # Hier ist der Dataset-Dienst
+    image: mrksdh/assessment
+    ports:
+      - "8080:8080"  # Port Mapping für den Assessment-Service
+    networks:
+      - example
+    # Kein Healthcheck konfiguriert
+
+  curl:
+    image: curlimages/curl
+    depends_on:
+      list:
+        condition: service_healthy
+    networks:
+      - example
+    volumes:
+      - ./output:/usr/local/bin/output  # Mount the output directory
+      - ./script.sh:/usr/local/bin/script.sh  # Mount the script
+    command: ["sh", "/usr/local/bin/script.sh"]
+
+networks:
+  example:
+    driver: bridge
+

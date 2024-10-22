@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set permissions for gradlew
+        run: chmod +x ./gradlew  # Set the permissions for the Gradle Wrapper script
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Build and start your application and services
+        run: |
+          # Build and start your application and services
+          docker-compose up -d --build  # Start services in detached mode and build images if necessary
+
+      - name: Wait for application to start
+        run: |
+          echo "Waiting 10 seconds for the application to be ready..."
+          sleep 10
+
+      - name: Check output file for POST request success
+        run: |
+          # Check the output file for POST request execution and HTTP/1.1 200
+          output_file="./output/curl_output.txt"  # Pfad zur Ausgabedatei
+
+          echo "Checking the output file for the correct order of 'Executing POST request...' and 'HTTP/1.1 200'..."
+          
+          if grep -q "Executing POST request..." "$output_file" && grep -q "HTTP/1.1 200" "$output_file"; then
+            # Ensure 'Executing POST request...' comes before 'HTTP/1.1 200'
+            post_request_line=$(grep -n "Executing POST request..." "$output_file" | cut -d: -f1)
+            http200_line=$(grep -n "HTTP/1.1 200" "$output_file" | cut -d: -f1)
+
+            if [ "$post_request_line" -lt "$http200_line" ]; then
+              echo "POST request executed successfully before HTTP/1.1 200 found in output file."
+            else
+              echo "'Executing POST request...' is not before 'HTTP/1.1 200' in the output file."
+              exit 1
+            fi
+          else
+            echo "Either 'Executing POST request...' or 'HTTP/1.1 200' not found in output file."
+            exit 1
+          fi
